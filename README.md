@@ -8,65 +8,80 @@ This recipe uses a Hyper-V virtual switch to bridge the WSL 2 network, providing
 
 ### Steps
 1. **Enable Hyper-V and Management PowerShell Features:**
-   - Open PowerShell as administrator and run:
-     ```powershell
-     Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V
-     Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-Management-PowerShell
-     ```
+    - Open PowerShell as administrator and run:
+      ```powershell
+      Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V
+      Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-Management-PowerShell
+      ```
 
 3. **Create an External Virtual Switch in Hyper-V:**
-   - Open PowerShell as administrator and run:
-     ```powershell
-     New-VMSwitch -Name "External Switch" -NetAdapterName eth0
-     ```
+    - Open PowerShell as administrator and run:
+      ```powershell
+      New-VMSwitch -Name "External Switch" -NetAdapterName eth0
+      ```
 
 4. **Modify the WSL Configuration:**
-   - Create or modify the `.wslconfig` file in your user profile directory (`$env:USERPROFILE/.wslconfig`) with the following content:
-     ```plaintext
-     [wsl2]
-     networkingMode=bridged
-     vmSwitch="External Switch"
-     dhcp=true
-     ipv6=true
-     ```
+    - Create or modify the `.wslconfig` file in your user profile directory (`$env:USERPROFILE/.wslconfig`) with the following content:
+      ```plaintext
+      [wsl2]
+      networkingMode=bridged
+      vmSwitch="External Switch"
+      dhcp=true
+      ipv6=true
+      ```
 
 5. **Enable systemd in the WSL Distribution:**
-   - Edit the `/etc/wsl.conf` file in your WSL distribution and add the following lines:
-     ```plaintext
-     [boot]
-     systemd=true
-     [network]
-     hostname = HOSTAGE
-     generateResolvConf = false
-     ```
+    - Edit the `/etc/wsl.conf` file in your WSL distribution and add the following lines:
+      ```plaintext
+      [boot]
+      systemd=true
+      [network]
+      hostname = HOSTAGE
+      generateResolvConf = false
+      ```
 
 6. **Configure Network Addressing:**
-   - For dynamic address configuration, ensure the following is present in `/etc/systemd/network/10-eth0.network`:
-     ```plaintext
-     [Match]
-     Name=eth0
-     [Network]
-     DHCP=yes
-     ```
-   - For static address configuration, use:
-     ```plaintext
-     [Match]
-     Name=eth0
-     [Network]
-     Address=192.168.x.xx/24
-     Gateway=192.168.x.x
-     DNS=192.168.x.x
-     ```
+    - For dynamic address configuration, ensure the following is present in `/etc/systemd/network/eth0.network`:
+      ```plaintext
+      [Match]
+      Name=eth0
+      [Network]
+      DHCP=yes
+      ```
+    - For static address configuration, use:
+      ```plaintext
+      [Match]
+      Name=eth0
+      [Network]
+      Address=192.168.x.xx/24
+      Gateway=192.168.x.x
+      DNS=192.168.x.x
+      ```
 
 7. **Link systemd Resolv.conf:**
-   - Create a symbolic link to link resolv.conf from systemd:
-     ```bash
-     ln -sfv /run/systemd/resolve/resolv.conf /etc/resolv.conf
-     ```
+    - Create a symbolic link to link resolv.conf from systemd:
+      ```bash
+      ln -sfv /run/systemd/resolve/resolv.conf /etc/resolv.conf
+      ```
 
 8. **Verification:**
-   - Restart the WSL 2 instance and verify the network configuration with:
-     ```bash
-     ip addr show eth0
-     ```
+    - Restart the WSL 2 instance and verify the network configuration with:
+      ```bash
+      ip addr show eth0
+      ```
 
+9. **DNS troubleshooting (optional)**
+    - The systemd-networkd service should be enabled and running:
+      ```bash
+      sudo systemctl enable systemd-networkd
+      sudo systemctl start systemd-networkd 
+      ```
+    - The systemd-resolved service should also be enabled and running:
+      ```bash
+      sudo systemctl enable systemd-resolved
+      sudo systemctl start systemd-resolved
+      ```
+    - Test DNS resolution:
+      ```bash
+      ping -c 3 google.com
+      ```
